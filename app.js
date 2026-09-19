@@ -1,7 +1,6 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const http = require('http');
-const qrcode = require('qrcode-terminal');
 
 // Servidor HTTP simples para manter o Render ativo
 const PORT = process.env.PORT || 3000;
@@ -13,7 +12,7 @@ http.createServer((req, res) => {
 });
 
 async function connectToWhatsApp() {
-    // Força a criação de uma nova sessão limpa (v3) para gerar o QR Code
+    // Força a criação de uma nova sessão limpa (v3)
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys_v3');
     const { version } = await fetchLatestBaileysVersion();
     
@@ -30,10 +29,13 @@ async function connectToWhatsApp() {
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        // Imprime o QR Code diretamente no terminal do Render
+        // Exibe o texto do QR Code ou aviso
         if (qr) {
-            console.log('--- LEIA O QR CODE ABAIXO NO SEU WHATSAPP ---');
-            qrcode.generate(qr, { small: true });
+            console.log('\n==================================================');
+            console.log('NOVO QR CODE GERADO COM SUCESSO!');
+            console.log('Aceda ao site https://qr.io ou utilize o terminal para escanear.');
+            console.log('STRING DO QR CODE:', qr);
+            console.log('==================================================\n');
         }
 
         if (connection === 'close') {
