@@ -2,7 +2,6 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const pino = require('pino');
 const http = require('http');
 
-// Servidor HTTP para manter o Render ativo
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -35,7 +34,7 @@ async function connectToWhatsApp() {
                 setTimeout(connectToWhatsApp, 3000);
             }
         } else if (connection === 'open') {
-            console.log('SUCCESS: WhatsApp conectado e protegido exclusivamente para o seu número!');
+            console.log('SUCCESS: WhatsApp conectado! Mande uma mensagem no seu chat pessoal agora.');
         }
     });
 
@@ -44,32 +43,24 @@ async function connectToWhatsApp() {
         if (!msg) return;
 
         const senderJid = msg.key.remoteJid || '';
+        const participantJid = msg.key.participant || '';
         const isFromMe = msg.key.fromMe;
-
-        // Variações do seu número (com 9 e sem 9 dígitos)
-        const NUMERO_COM_9 = '5551980447806';
-        const NUMERO_SEM_9 = '555180447806';
-
-        // Verifica se a mensagem veio de você (seja pelo seu próprio chat ou mandando para o seu número)
-        const isMeuNumero = senderJid.includes(NUMERO_COM_9) || senderJid.includes(NUMERO_SEM_9) || isFromMe;
-
-        // TRAVA DE SEGURANÇA: Se NÃO for o seu número, ignora totalmente
-        if (!isMeuNumero) {
-            return;
-        }
-
         const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
 
+        // DIAGNÓSTICO: Imprime no log do Render exatamente de onde veio a mensagem
+        console.log(`\n================ MENSAGEM DETECTADA ================`);
+        console.log(`fromMe: ${isFromMe}`);
+        console.log(`remoteJid: ${senderJid}`);
+        console.log(`participant: ${participantJid}`);
+        console.log(`Texto: ${text}`);
+        console.log(`====================================================\n`);
+
+        // Responde a QUALQUER mensagem por enquanto para testarmos no seu chat
         if (text) {
-            console.log(`[DONO] Mensagem recebida: ${text}`);
-            
-            const replyText = `✅ *Gasto Anotado (Privado)!*\n\nConteúdo: "${text}"`;
-            
             try {
-                await sock.sendMessage(senderJid, { text: replyText });
-                console.log('Resposta enviada com sucesso no seu chat!');
+                await sock.sendMessage(senderJid, { text: `🤖 Bot recebeu seu teste: "${text}"` });
             } catch (err) {
-                console.error('Erro ao enviar resposta:', err);
+                console.error('Erro ao enviar:', err);
             }
         }
     });
