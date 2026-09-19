@@ -1,9 +1,8 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const OpenAI = require('openai');
 const http = require('http');
 
-// Servidor HTTP simples para manter o Render ativo e escutar na porta correta
+// Servidor HTTP simples para manter o Render ativo
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -12,10 +11,7 @@ http.createServer((req, res) => {
     console.log(`Servidor HTTP ativo na porta ${PORT}`);
 });
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 async function connectToWhatsApp() {
-    // Utiliza auth_info_baileys_v2 para forçar a criação de uma sessão limpa
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys_v2');
     const { version } = await fetchLatestBaileysVersion();
     
@@ -30,14 +26,7 @@ async function connectToWhatsApp() {
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        if (qr) {
-            console.log('==================================================');
-            console.log('LINK DO QR CODE (COPIE E ABRA NO NAVEGADOR):');
-            console.log(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
-            console.log('==================================================');
-        }
+        const { connection, lastDisconnect } = update;
 
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
@@ -58,16 +47,16 @@ async function connectToWhatsApp() {
             const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
 
             if (text) {
+                console.log(`Mensagem recebida de ${remoteJid}: ${text}`);
+                
+                // Resposta simulada 100% GRATUITA para teste
+                const replyText = `✅ *Mensagem Recebida com Sucesso!*\n\nVocê enviou: "${text}"\n\nO bot está funcionando perfeitamente no Render!`;
+                
                 try {
-                    const response = await openai.chat.completions.create({
-                        model: "gpt-4o-mini",
-                        messages: [{ role: "user", content: text }],
-                    });
-
-                    const replyText = response.choices[0].message.content;
                     await sock.sendMessage(remoteJid, { text: replyText });
+                    console.log('Resposta enviada com sucesso no WhatsApp!');
                 } catch (err) {
-                    console.error('Erro na OpenAI:', err);
+                    console.error('Erro ao enviar no WhatsApp:', err);
                 }
             }
         }
