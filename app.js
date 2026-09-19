@@ -12,7 +12,6 @@ http.createServer((req, res) => {
 });
 
 async function connectToWhatsApp() {
-    // Força a criação de uma nova sessão limpa (v3)
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys_v3');
     const { version } = await fetchLatestBaileysVersion();
     
@@ -29,12 +28,12 @@ async function connectToWhatsApp() {
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        // Exibe o texto do QR Code ou aviso
+        // Gera o link direto idêntico ao de ontem para abrir no Google Chrome
         if (qr) {
+            const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
             console.log('\n==================================================');
-            console.log('NOVO QR CODE GERADO COM SUCESSO!');
-            console.log('Aceda ao site https://qr.io ou utilize o terminal para escanear.');
-            console.log('STRING DO QR CODE:', qr);
+            console.log('COPIE E ABRA O LINK ABAIXO NO GOOGLE PARA VER O QR CODE:');
+            console.log(qrLink);
             console.log('==================================================\n');
         }
 
@@ -59,7 +58,7 @@ async function connectToWhatsApp() {
             if (text) {
                 console.log(`Mensagem recebida de ${remoteJid}: ${text}`);
                 
-                // Resposta simulada 100% GRATUITA para teste
+                // Resposta de teste gratuita no WhatsApp
                 const replyText = `✅ *Mensagem Recebida com Sucesso!*\n\nVocê enviou: "${text}"\n\nO bot está funcionando perfeitamente no Render!`;
                 
                 try {
