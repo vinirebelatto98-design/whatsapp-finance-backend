@@ -2,7 +2,6 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const pino = require('pino');
 const http = require('http');
 
-// Servidor HTTP simples para manter o Render ativo
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -26,47 +25,40 @@ async function connectToWhatsApp() {
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        // Gera o link direto idêntico ao de ontem para abrir no Google Chrome
-        if (qr) {
-            const qrLink = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
-            console.log('\n==================================================');
-            console.log('COPIE E ABRA O LINK ABAIXO NO GOOGLE PARA VER O QR CODE:');
-            console.log(qrLink);
-            console.log('==================================================\n');
-        }
+        const { connection, lastDisconnect } = update;
 
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            console.log(`Conexao fechada (${statusCode}). Reconectando...`);
             if (shouldReconnect) {
                 setTimeout(connectToWhatsApp, 3000);
             }
         } else if (connection === 'open') {
-            console.log('SUCCESS: WhatsApp conectado com sucesso!');
+            console.log('SUCCESS: WhatsApp conectado e restrito apenas ao dono!');
         }
     });
 
     sock.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
-        if (!msg.key.fromMe && m.type === 'notify') {
-            const remoteJid = msg.key.remoteJid;
-            const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
+        
+        // REGRA DE SEGURANÇA MÁXIMA:
+        // Se a mensagem NÃO veio de você mesmo (fromMe === false), o bot ignora e encerra imediatamente.
+        if (!msg.key.fromMe) {
+            return;
+        }
 
-            if (text) {
-                console.log(`Mensagem recebida de ${remoteJid}: ${text}`);
-                
-                // Resposta de teste gratuita no WhatsApp
-                const replyText = `✅ *Mensagem Recebida com Sucesso!*\n\nVocê enviou: "${text}"\n\nO bot está funcionando perfeitamente no Render!`;
-                
-                try {
-                    await sock.sendMessage(remoteJid, { text: replyText });
-                    console.log('Resposta enviada com sucesso no WhatsApp!');
-                } catch (err) {
-                    console.error('Erro ao enviar no WhatsApp:', err);
-                }
+        const remoteJid = msg.key.remoteJid;
+        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
+
+        if (text) {
+            console.log(`Mensagem própria processada: ${text}`);
+            
+            const replyText = `✅ *Anotado no seu Chat Pessoal!*\n\nConteúdo: "${text}"`;
+            
+            try {
+                await sock.sendMessage(remoteJid, { text: replyText });
+            } catch (err) {
+                console.error('Erro ao responder no seu chat:', err);
             }
         }
     });
