@@ -4,7 +4,7 @@ const pino = require('pino');
 const OpenAI = require('openai');
 const http = require('http');
 
-// Servidor HTTP simples para o Render validar a porta
+// Servidor HTTP para manter o Render ativo
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -20,7 +20,7 @@ async function connectToWhatsApp() {
     
     const sock = makeWASocket({
         auth: state,
-        logger: pino({ level: 'silent' })
+        logger: pino({ level: 'info' }) // Mudado para 'info' para forçar logs visíveis
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -29,10 +29,10 @@ async function connectToWhatsApp() {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
-            console.log('\n========================================');
-            console.log('--- SCAN QR CODE BELOW ---');
+            console.log('========================================');
+            console.log('NOVO QR CODE GERADO:');
             qrcode.generate(qr, { small: true });
-            console.log('========================================\n');
+            console.log('========================================');
         }
 
         if (connection === 'close') {
@@ -41,7 +41,7 @@ async function connectToWhatsApp() {
                 connectToWhatsApp();
             }
         } else if (connection === 'open') {
-            console.log('WhatsApp conectado com sucesso!');
+            console.log('SUCCESS: WhatsApp conectado com sucesso!');
         }
     });
 
