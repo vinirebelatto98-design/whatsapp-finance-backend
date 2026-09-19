@@ -3,6 +3,7 @@ const pino = require('pino');
 const OpenAI = require('openai');
 const http = require('http');
 
+// Servidor HTTP simples para manter o Render ativo e escutar na porta correta
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -14,7 +15,8 @@ http.createServer((req, res) => {
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    // Utiliza auth_info_baileys_v2 para forçar a criação de uma sessão limpa
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys_v2');
     const { version } = await fetchLatestBaileysVersion();
     
     const sock = makeWASocket({
