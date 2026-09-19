@@ -2,6 +2,16 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = requi
 const qrcode = require('qrcode-terminal');
 const pino = require('pino');
 const OpenAI = require('openai');
+const http = require('http');
+
+// Servidor HTTP simples para o Render validar a porta
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('WhatsApp Bot esta ativo!\n');
+}).listen(PORT, () => {
+    console.log(`Servidor HTTP ativo na porta ${PORT}`);
+});
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
