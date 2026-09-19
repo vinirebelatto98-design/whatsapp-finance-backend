@@ -1,6 +1,7 @@
-const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
-const { OpenAI } = require('openai');
+const pino = require('pino');
+const OpenAI = require('openai');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -9,7 +10,7 @@ async function connectToWhatsApp() {
     
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: false
+        logger: pino({ level: 'silent' })
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -18,14 +19,17 @@ async function connectToWhatsApp() {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
+            console.log('\n========================================');
             console.log('--- SCAN QR CODE BELOW ---');
             qrcode.generate(qr, { small: true });
+            console.log('========================================\n');
         }
 
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('Conexão fechada. Reconectando...', shouldReconnect);
-            if (shouldReconnect) connectToWhatsApp();
+            const shouldReconnect = (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut);
+            if (shouldReconnect) {
+                connectToWhatsApp();
+            }
         } else if (connection === 'open') {
             console.log('WhatsApp conectado com sucesso!');
         }
@@ -43,7 +47,7 @@ async function connectToWhatsApp() {
                         model: "gpt-4o-mini",
                         messages: [{ role: "user", content: text }],
                     });
-                    
+
                     const replyText = response.choices[0].message.content;
                     await sock.sendMessage(remoteJid, { text: replyText });
                 } catch (err) {
