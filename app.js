@@ -1,9 +1,8 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const OpenAI = require('openai');
 const http = require('http');
 
-// Servidor HTTP para manter o Render ativo
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -16,14 +15,14 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    const { version } = await fetchLatestBaileysVersion();
     
     const sock = makeWASocket({
+        version,
         auth: state,
         logger: pino({ level: 'silent' }),
-        browser: Browsers.ubuntu('Chrome'), // Simula navegador desktop para evitar falha no handshake
-        connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000
+        browser: ['Mac OS', 'Chrome', '121.0.0.0'],
+        syncFullHistory: false
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -32,16 +31,16 @@ async function connectToWhatsApp() {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
-            console.log('--------------------------------------------------');
-            console.log('COPIE ESTE LINK E ABRA NO NAVEGADOR PARA VER O QR:');
+            console.log('==================================================');
+            console.log('LINK DO QR CODE (COPIE E ABRA NO NAVEGADOR):');
             console.log(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
-            console.log('--------------------------------------------------');
+            console.log('==================================================');
         }
 
         if (connection === 'close') {
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            console.log(`Conexao fechada (code ${statusCode}). Reconectando: ${shouldReconnect}`);
+            console.log(`Conexao fechada (${statusCode}). Reconectando...`);
             if (shouldReconnect) {
                 setTimeout(connectToWhatsApp, 3000);
             }
