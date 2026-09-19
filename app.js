@@ -2,6 +2,7 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const pino = require('pino');
 const http = require('http');
 
+// Servidor HTTP para manter o Render ativo
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -34,31 +35,35 @@ async function connectToWhatsApp() {
                 setTimeout(connectToWhatsApp, 3000);
             }
         } else if (connection === 'open') {
-            console.log('SUCCESS: WhatsApp conectado e restrito apenas ao dono!');
+            console.log('SUCCESS: WhatsApp conectado e protegido exclusivamente para o seu número!');
         }
     });
 
     sock.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
         
-        // REGRA DE SEGURANÇA MÁXIMA:
-        // Se a mensagem NÃO veio de você mesmo (fromMe === false), o bot ignora e encerra imediatamente.
-        if (!msg.key.fromMe) {
+        // SEU NÚMERO CONFIGURADO COM SEGURANÇA
+        const MEU_NUMERO_PESSOAL = '5551980447806@s.whatsapp.net';
+
+        const senderJid = msg.key.remoteJid;
+        const isFromMe = msg.key.fromMe;
+
+        // TRAVA DE SEGURANÇA: Se a mensagem não veio do seu número, o bot ignora 100%
+        if (!isFromMe && senderJid !== MEU_NUMERO_PESSOAL) {
             return;
         }
 
-        const remoteJid = msg.key.remoteJid;
         const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
 
         if (text) {
-            console.log(`Mensagem própria processada: ${text}`);
+            console.log(`Anotação recebida do dono: ${text}`);
             
-            const replyText = `✅ *Anotado no seu Chat Pessoal!*\n\nConteúdo: "${text}"`;
+            const replyText = `✅ *Gasto Anotado (Privado)!*\n\nConteúdo: "${text}"`;
             
             try {
-                await sock.sendMessage(remoteJid, { text: replyText });
+                await sock.sendMessage(senderJid, { text: replyText });
             } catch (err) {
-                console.error('Erro ao responder no seu chat:', err);
+                console.error('Erro ao enviar resposta:', err);
             }
         }
     });
