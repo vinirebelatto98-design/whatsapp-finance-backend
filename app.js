@@ -41,27 +41,33 @@ async function connectToWhatsApp() {
 
     sock.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
-        
-        // SEU NÚMERO CONFIGURADO COM SEGURANÇA
-        const MEU_NUMERO_PESSOAL = '5551980447806@s.whatsapp.net';
+        if (!msg) return;
 
-        const senderJid = msg.key.remoteJid;
+        const senderJid = msg.key.remoteJid || '';
         const isFromMe = msg.key.fromMe;
 
-        // TRAVA DE SEGURANÇA: Se a mensagem não veio do seu número, o bot ignora 100%
-        if (!isFromMe && senderJid !== MEU_NUMERO_PESSOAL) {
+        // Variações do seu número (com 9 e sem 9 dígitos)
+        const NUMERO_COM_9 = '5551980447806';
+        const NUMERO_SEM_9 = '555180447806';
+
+        // Verifica se a mensagem veio de você (seja pelo seu próprio chat ou mandando para o seu número)
+        const isMeuNumero = senderJid.includes(NUMERO_COM_9) || senderJid.includes(NUMERO_SEM_9) || isFromMe;
+
+        // TRAVA DE SEGURANÇA: Se NÃO for o seu número, ignora totalmente
+        if (!isMeuNumero) {
             return;
         }
 
         const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
 
         if (text) {
-            console.log(`Anotação recebida do dono: ${text}`);
+            console.log(`[DONO] Mensagem recebida: ${text}`);
             
             const replyText = `✅ *Gasto Anotado (Privado)!*\n\nConteúdo: "${text}"`;
             
             try {
                 await sock.sendMessage(senderJid, { text: replyText });
+                console.log('Resposta enviada com sucesso no seu chat!');
             } catch (err) {
                 console.error('Erro ao enviar resposta:', err);
             }
