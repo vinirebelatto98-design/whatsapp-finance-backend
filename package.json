@@ -1,14 +1,12 @@
 {
-  "name": "whatsapp-finance-backend",
+  "name": "finance-webapp",
   "version": "1.0.0",
-  "description": "",
+  "description": "App Web de Controle Financeiro",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.18",
-    "openai": "^4.28.0",
-    "pino": "^8.19.0"
+    "express": "^4.19.2"
   }
 }
